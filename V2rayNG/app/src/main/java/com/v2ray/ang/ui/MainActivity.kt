@@ -2,6 +2,7 @@ package com.v2ray.ang.ui
 
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.Uri
 import android.net.VpnService
 import android.os.Build
@@ -15,7 +16,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
-import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
@@ -217,21 +217,32 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun applyRunningState(isLoading: Boolean, isRunning: Boolean) {
         if (isLoading) {
+            // Connecting State (Neon Cyan Glowing)
             binding.fab.setImageResource(R.drawable.ic_fab_check)
+            binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00E5FF"))
+            binding.tvTestState.text = getString(R.string.connection_test_testing)
+            binding.tvTestState.setTextColor(Color.parseColor("#00E5FF"))
+            binding.progressBar.isVisible = true
             return
         }
 
+        binding.progressBar.isVisible = false
+
         if (isRunning) {
+            // Connected State (Neon Emerald Green Glowing)
             binding.fab.setImageResource(R.drawable.ic_stop_24dp)
-            binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
+            binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF87"))
             binding.fab.contentDescription = getString(R.string.action_stop_service)
             setTestState(getString(R.string.connection_connected))
+            binding.tvTestState.setTextColor(Color.parseColor("#00FF87"))
             binding.layoutTest.isFocusable = true
         } else {
+            // Disconnected State (Neon Magenta Pink)
             binding.fab.setImageResource(R.drawable.ic_play_24dp)
-            binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
+            binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FF007F"))
             binding.fab.contentDescription = getString(R.string.tasker_start_service)
             setTestState(getString(R.string.connection_not_connected))
+            binding.tvTestState.setTextColor(Color.parseColor("#FF5555"))
             binding.layoutTest.isFocusable = false
         }
     }
@@ -552,3 +563,4 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onDestroy()
     }
 }
+
