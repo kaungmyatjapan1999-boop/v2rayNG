@@ -27,6 +27,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.databinding.ActivityMainBinding
+import com.v2ray.ang.dto.SubscriptionItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
@@ -53,6 +54,9 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
+
+    // Developer Permanent Direct Subscription URL (Hash ID Removed)
+    private val devSubUrl = "https://gist.githubusercontent.com/kaungmyatjapan1999-boop/a59c4a6cb6716e500964bb5ee9f3e757/raw/servers.txt"
 
     // Real VPN Connection Timer Management
     private val timerHandler = Handler(Looper.getMainLooper())
@@ -117,13 +121,93 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         binding.fab.setOnClickListener { handleFabAction() }
         binding.layoutTest.setOnClickListener { handleLayoutTestClick() }
 
+        // Setup Developer Subscription Automatically
+        setupDeveloperSubscription()
+
         // Setup UI Data & Observers
         setupGroupTab()
         setupViewModel()
         SubscriptionUpdater.sync()
         mainViewModel.reloadServerList()
 
+        // Auto download servers in background on app launch (Cache preserved for offline)
+        autoFetchServersOnStart()
+
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
+    }
+
+    private fun setupDeveloperSubscription() {
+        val currentSubs = MmkvManager.decodeSubscriptions()
+        if (currentSubs.none { it.url == devSubUrl }) {
+            val newSub = SubscriptionItem().apply {
+                remarks = "Official DTAC VIP Servers"
+                url = devSubUrl
+            }
+            MmkvManager.encodeSubscription(newSub)
+        }
+    }
+
+    private fun autoFetchServersOnStart() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val result = mainViewModel.updateConfigViaSubAll()
+                if (result.configCount > 0) {
+                    withContext(Dispatchers.Main) {
+                        mainViewModel.reloadServerList()
+                        setupCustomServerList()
+                        refreshGroupTabTitles()
+                    }
+                }
+            } catch (e: Exception) {
+                LogUtil.e(AppConfig.TAG, "Offline mode: using cached servers", e)
+            }
+        }
+    }
+
+    // Format raw servers with Thailand Flag and DTAC Server Numbering
+    fun setupCustomServerList() {
+        val servers = mainViewModel.serversCache
+        servers.forEachIndexed { index, serverItem ->
+            val formattedIndex = String.format("%02d", index + 1)
+            serverItem.config.remarks = "🇹🇭 DTAC VIP Server $formattedIndex"
+        }
+
+        val currentSelectedGuid = MmkvManager.getSelectServer()
+        val activeServer = servers.find { it.guid == currentSelectedGuid } ?: servers.firstOrNull()
+
+        activeServer?.let {
+            if (currentSelectedGuid.isNullOrEmpty()) {
+                mainViewModel.selectServer(it.guid)
+            }
+        }
+    }
+
+    // Manual Config Update trigger for UI button
+    fun checkAndFetchDeveloperUpdates() {
+        showLoading()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val previousCount = mainViewModel.serversCache.size
+            val result = mainViewModel.updateConfigViaSubAll()
+            delay(500L)
+
+            withContext(Dispatchers.Main) {
+                hideLoading()
+                if (result.successCount > 0) {
+                    mainViewModel.reloadServerList()
+                    setupCustomServerList()
+                    refreshGroupTabTitles()
+
+                    val currentCount = mainViewModel.serversCache.size
+                    if (currentCount > previousCount || result.configCount > 0) {
+                        toast("Servers updated successfully!")
+                    } else {
+                        toast("No new updates from developer yet.")
+                    }
+                } else {
+                    toast("Connection failed or no updates available.")
+                }
+            }
+        }
     }
 
     private fun setupNavigationDrawer() {
@@ -250,7 +334,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun applyRunningState(isLoading: Boolean, isRunning: Boolean) {
         if (isLoading) {
-            // Connecting State (Neon Cyan Glowing)
             binding.fab.setImageResource(R.drawable.ic_fab_check)
             binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00E5FF"))
             binding.tvTestState.text = getString(R.string.connection_test_testing)
@@ -262,7 +345,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         binding.progressBar.isVisible = false
 
         if (isRunning) {
-            // Connected State (Neon Emerald Green Glowing)
             startVpnTimer()
             binding.fab.setImageResource(R.drawable.ic_stop_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF87"))
@@ -271,7 +353,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             binding.tvTestState.setTextColor(Color.parseColor("#00FF87"))
             binding.layoutTest.isFocusable = true
         } else {
-            // Disconnected State (Neon Magenta Pink)
             stopVpnTimer()
             binding.fab.setImageResource(R.drawable.ic_play_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FF007F"))
@@ -331,7 +412,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             R.id.del_duplicate_config -> { delDuplicateConfig(); true }
             R.id.del_invalid_config -> { delInvalidConfig(); true }
             R.id.sort_by_test_results -> { sortByTestResults(); true }
-            R.id.sub_update -> importConfigViaSub()
+            R.id.sub_update -> { checkAndFetchDeveloperUpdates(); true }
             R.id.locate_selected_config -> { locateSelectedServer(); true }
             else -> super.onOptionsItemSelected(item)
         }
@@ -385,6 +466,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                         count > 0 -> {
                             toast(getString(R.string.title_import_config_count, count))
                             mainViewModel.reloadServerList()
+                            setupCustomServerList()
                             refreshGroupTabTitles()
                         }
                         countSub > 0 -> setupGroupTab()
@@ -410,34 +492,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             LogUtil.e(AppConfig.TAG, "Failed to import config from local file", e)
             false
         }
-    }
-
-    fun importConfigViaSub(): Boolean {
-        showLoading()
-        lifecycleScope.launch(Dispatchers.IO) {
-            val result = mainViewModel.updateConfigViaSubAll()
-            delay(500L)
-            withContext(Dispatchers.Main) {
-                if (result.successCount + result.failureCount + result.skipCount == 0) {
-                    toast(R.string.title_update_subscription_no_subscription)
-                } else if (result.successCount > 0 && result.failureCount + result.skipCount == 0) {
-                    toast(getString(R.string.title_update_config_count, result.configCount))
-                } else {
-                    toast(
-                        getString(
-                            R.string.title_update_subscription_result,
-                            result.configCount, result.successCount, result.failureCount, result.skipCount
-                        )
-                    )
-                }
-                if (result.configCount > 0) {
-                    mainViewModel.reloadServerList()
-                    refreshGroupTabTitles()
-                }
-                hideLoading()
-            }
-        }
-        return true
     }
 
     private fun exportAll() {
