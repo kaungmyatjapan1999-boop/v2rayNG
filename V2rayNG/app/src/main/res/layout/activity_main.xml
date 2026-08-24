@@ -14,12 +14,15 @@
 
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            app:elevation="0dp">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize" />
+                android:layout_height="?attr/actionBarSize"
+                app:titleTextColor="#FFFFFF" />
 
         </com.google.android.material.appbar.AppBarLayout>
 
@@ -43,77 +46,82 @@
                         android:layout_height="wrap_content"
                         android:indeterminate="true"
                         android:visibility="invisible"
-                        app:indicatorColor="@color/color_fab_active" />
+                        app:indicatorColor="#00E5FF" />
 
                     <com.google.android.material.tabs.TabLayout
                         android:id="@+id/tab_group"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:background="#20000000"
+                        app:tabIndicatorColor="#00E5FF"
                         app:tabIndicatorFullWidth="false"
                         app:tabMode="scrollable"
-                        app:tabTextAppearance="@style/TabLayoutTextStyle" />
+                        app:tabSelectedTextColor="#00E5FF"
+                        app:tabTextColor="#CCFFFFFF" />
 
                     <androidx.viewpager2.widget.ViewPager2
                         android:id="@+id/view_pager"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
-                        android:nextFocusRight="@+id/fab"
-                        android:scrollbars="vertical"
-                        android:layout_weight="1" />
+                        android:layout_weight="1"
+                        android:scrollbars="vertical" />
 
-                    <LinearLayout
-                        android:id="@+id/layout_test"
+                    <!-- OpenVPN Style Central Status & Speed Card -->
+                    <androidx.cardview.widget.CardView
+                        android:id="@+id/card_status"
                         android:layout_width="match_parent"
-                        android:layout_height="@dimen/view_height_dp64"
-                        android:clickable="true"
-                        android:contentDescription="@string/connection_test_pending"
-                        android:focusable="true"
-                        android:nextFocusLeft="@+id/view_pager"
-                        android:nextFocusRight="@+id/fab"
-                        android:orientation="vertical">
-
-                        <View
-                            android:layout_width="wrap_content"
-                            android:layout_height="1dp"
-                            android:background="@color/divider_color_light" />
-
-                        <TextView
-                            android:id="@+id/tv_test_state"
-                            android:layout_width="wrap_content"
-                            android:layout_height="match_parent"
-                            android:gravity="start|center"
-                            android:maxLines="2"
-                            android:minLines="1"
-                            android:paddingStart="@dimen/padding_spacing_dp16"
-                            android:text="@string/connection_test_pending"
-                            android:textAppearance="@style/TextAppearance.AppCompat.Small" />
-
-                    </LinearLayout>
-                </LinearLayout>
-
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|end"
-                    android:layout_marginBottom="-16dp"
-                    android:layout_marginEnd="@dimen/padding_spacing_dp16">
-
-                    <com.google.android.material.floatingactionbutton.FloatingActionButton
-                        android:id="@+id/fab"
-                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="bottom|end"
-                        android:layout_marginBottom="@dimen/view_height_dp36"
-                        android:clickable="true"
-                        android:contentDescription="@string/tasker_start_service"
-                        android:focusable="true"
-                        android:nextFocusLeft="@+id/layout_test"
-                        android:src="@drawable/ic_play_24dp"
-                        app:tint="@color/colorWhite"
-                        app:useCompatPadding="true"
-                        app:layout_anchorGravity="bottom|right|end" />
+                        android:layout_margin="16dp"
+                        app:cardBackgroundColor="#2B000000"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="0dp">
 
-                </FrameLayout>
+                        <LinearLayout
+                            android:id="@+id/layout_test"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:id="@+id/tv_test_state"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/connection_test_pending"
+                                android:textColor="#00E5FF"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- Bottom Large Glowing Start/Stop Button Container -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp"
+                        android:gravity="center">
+
+                        <com.google.android.material.floatingactionbutton.FloatingActionButton
+                            android:id="@+id/fab"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:src="@drawable/ic_play_24dp"
+                            app:backgroundTint="#FF007F"
+                            app:fabCustomSize="80dp"
+                            app:maxImageSize="40dp"
+                            app:tint="#FFFFFF"
+                            app:useCompatPadding="false" />
+                    </FrameLayout>
+
+                </LinearLayout>
             </androidx.coordinatorlayout.widget.CoordinatorLayout>
         </RelativeLayout>
     </LinearLayout>
@@ -124,8 +132,6 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         app:headerLayout="@layout/nav_header"
-        app:menu="@menu/menu_drawer">
-
-    </com.google.android.material.navigation.NavigationView>
+        app:menu="@menu/menu_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
