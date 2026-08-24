@@ -7,6 +7,8 @@ import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
@@ -51,6 +53,37 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
+
+    // Real VPN Connection Timer Management
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private var startTime = 0L
+    private var isTimerRunning = false
+
+    private val timerRunnable = object : Runnable {
+        override fun run() {
+            val millis = System.currentTimeMillis() - startTime
+            val seconds = (millis / 1000).toInt() % 60
+            val minutes = (millis / (1000 * 60)).toInt() % 60
+            val hours = (millis / (1000 * 60 * 60)).toInt()
+
+            binding.tvTimer.text = String.format("%02d : %02d : %02d", hours, minutes, seconds)
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
+
+    private fun startVpnTimer() {
+        if (!isTimerRunning) {
+            startTime = System.currentTimeMillis()
+            timerHandler.post(timerRunnable)
+            isTimerRunning = true
+        }
+    }
+
+    private fun stopVpnTimer() {
+        timerHandler.removeCallbacks(timerRunnable)
+        isTimerRunning = false
+        binding.tvTimer.text = "00 : 00 : 00"
+    }
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -230,6 +263,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
         if (isRunning) {
             // Connected State (Neon Emerald Green Glowing)
+            startVpnTimer()
             binding.fab.setImageResource(R.drawable.ic_stop_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#00FF87"))
             binding.fab.contentDescription = getString(R.string.action_stop_service)
@@ -238,6 +272,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             binding.layoutTest.isFocusable = true
         } else {
             // Disconnected State (Neon Magenta Pink)
+            stopVpnTimer()
             binding.fab.setImageResource(R.drawable.ic_play_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FF007F"))
             binding.fab.contentDescription = getString(R.string.tasker_start_service)
@@ -559,8 +594,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     override fun onDestroy() {
+        stopVpnTimer()
         tabMediator?.detach()
         super.onDestroy()
     }
 }
-
