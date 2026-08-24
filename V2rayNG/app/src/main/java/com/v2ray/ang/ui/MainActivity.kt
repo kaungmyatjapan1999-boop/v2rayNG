@@ -55,7 +55,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
 
-    // Developer Permanent Direct Subscription URL (Hash ID Removed)
+    // Developer Permanent Direct Subscription URL
     private val devSubUrl = "https://gist.githubusercontent.com/kaungmyatjapan1999-boop/a59c4a6cb6716e500964bb5ee9f3e757/raw/servers.txt"
 
     // Real VPN Connection Timer Management
@@ -130,7 +130,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         SubscriptionUpdater.sync()
         mainViewModel.reloadServerList()
 
-        // Auto download servers in background on app launch (Cache preserved for offline)
+        // Auto download servers in background on app launch
         autoFetchServersOnStart()
 
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
@@ -138,12 +138,12 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun setupDeveloperSubscription() {
         val currentSubs = MmkvManager.decodeSubscriptions()
-        if (currentSubs.none { it.url == devSubUrl }) {
-            val newSub = SubscriptionItem().apply {
-                remarks = "Official DTAC VIP Servers"
-                url = devSubUrl
-            }
-            MmkvManager.encodeSubscription(newSub)
+        val exists = currentSubs.any { it.second.url == devSubUrl }
+        if (!exists) {
+            val newSub = SubscriptionItem()
+            newSub.remarks = "Official DTAC VIP Servers"
+            newSub.url = devSubUrl
+            MmkvManager.encodeSubscription("", newSub)
         }
     }
 
@@ -154,30 +154,11 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 if (result.configCount > 0) {
                     withContext(Dispatchers.Main) {
                         mainViewModel.reloadServerList()
-                        setupCustomServerList()
                         refreshGroupTabTitles()
                     }
                 }
             } catch (e: Exception) {
                 LogUtil.e(AppConfig.TAG, "Offline mode: using cached servers", e)
-            }
-        }
-    }
-
-    // Format raw servers with Thailand Flag and DTAC Server Numbering
-    fun setupCustomServerList() {
-        val servers = mainViewModel.serversCache
-        servers.forEachIndexed { index, serverItem ->
-            val formattedIndex = String.format("%02d", index + 1)
-            serverItem.config.remarks = "🇹🇭 DTAC VIP Server $formattedIndex"
-        }
-
-        val currentSelectedGuid = MmkvManager.getSelectServer()
-        val activeServer = servers.find { it.guid == currentSelectedGuid } ?: servers.firstOrNull()
-
-        activeServer?.let {
-            if (currentSelectedGuid.isNullOrEmpty()) {
-                mainViewModel.selectServer(it.guid)
             }
         }
     }
@@ -194,7 +175,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 hideLoading()
                 if (result.successCount > 0) {
                     mainViewModel.reloadServerList()
-                    setupCustomServerList()
                     refreshGroupTabTitles()
 
                     val currentCount = mainViewModel.serversCache.size
@@ -466,7 +446,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                         count > 0 -> {
                             toast(getString(R.string.title_import_config_count, count))
                             mainViewModel.reloadServerList()
-                            setupCustomServerList()
                             refreshGroupTabTitles()
                         }
                         countSub > 0 -> setupGroupTab()
@@ -653,3 +632,4 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onDestroy()
     }
 }
+
