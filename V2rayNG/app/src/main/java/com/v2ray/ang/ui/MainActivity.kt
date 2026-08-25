@@ -137,8 +137,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     private fun setupDeveloperSubscription() {
-        val currentSubs: List<Pair<String, SubscriptionItem>> = MmkvManager.decodeSubscriptions()
-        val exists = currentSubs.any { it.second.url == devSubUrl }
+        val currentSubs = MmkvManager.decodeSubscriptions()
+        val exists = currentSubs.any { it.url == devSubUrl }
         if (!exists) {
             val subId = Utils.getUuid()
             val subItem = SubscriptionItem().apply {
