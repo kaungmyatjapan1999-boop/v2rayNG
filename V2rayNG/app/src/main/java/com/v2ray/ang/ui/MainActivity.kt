@@ -27,6 +27,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.databinding.ActivityMainBinding
+import com.v2ray.ang.dto.SubscriptionItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
@@ -136,11 +137,11 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     private fun setupDeveloperSubscription() {
-        val currentSubs = MmkvManager.decodeSubscriptions()
+        val currentSubs: List<Pair<String, SubscriptionItem>> = MmkvManager.decodeSubscriptions()
         val exists = currentSubs.any { it.second.url == devSubUrl }
         if (!exists) {
             val subId = Utils.getUuid()
-            val subItem = com.v2ray.ang.dto.SubscriptionItem().apply {
+            val subItem = SubscriptionItem().apply {
                 remarks = "Official DTAC VIP Servers"
                 url = devSubUrl
             }
