@@ -27,7 +27,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.databinding.ActivityMainBinding
-import com.v2ray.ang.dto.SubscriptionItem
+import com.v2ray.ang.dto.*
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
@@ -127,10 +127,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             val currentSubs = MmkvManager.decodeSubscriptions()
             var exists = false
 
-            for (item in currentSubs) {
-                val subItem = (item as? Map.Entry<*, *>)?.value as? SubscriptionItem 
-                    ?: item as? SubscriptionItem
-                if (subItem?.url == devSubUrl) {
+            for (entry in currentSubs) {
+                if (entry.value.url == devSubUrl) {
                     exists = true
                     break
                 }
@@ -623,3 +621,4 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onDestroy()
     }
 }
+
