@@ -125,14 +125,23 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private fun setupDeveloperSubscription() {
         try {
             val currentSubs = MmkvManager.decodeSubscriptions()
-            val exists = currentSubs.any { it.value.url == devSubUrl }
+            var exists = false
+
+            for (item in currentSubs) {
+                val subItem = (item as? Map.Entry<*, *>)?.value as? SubscriptionItem 
+                    ?: item as? SubscriptionItem
+                if (subItem?.url == devSubUrl) {
+                    exists = true
+                    break
+                }
+            }
 
             if (!exists) {
                 val subId = Utils.getUuid()
-                val subItem = com.v2ray.ang.dto.SubscriptionItem().apply {
-                    remarks = "Official DTAC VIP Servers"
-                    url = devSubUrl
-                }
+                val subItem = SubscriptionItem()
+                subItem.remarks = "Official DTAC VIP Servers"
+                subItem.url = devSubUrl
+
                 MmkvManager.encodeSubscription(subId, subItem)
             }
         } catch (e: Exception) {
