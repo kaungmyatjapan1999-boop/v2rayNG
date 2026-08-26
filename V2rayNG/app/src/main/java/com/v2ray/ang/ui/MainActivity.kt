@@ -27,7 +27,6 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.databinding.ActivityMainBinding
-import com.v2ray.ang.dto.*
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
@@ -124,24 +123,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun setupDeveloperSubscription() {
         try {
-            val currentSubs = MmkvManager.decodeSubscriptions()
-            var exists = false
-
-            for (entry in currentSubs) {
-                if (entry.value.url == devSubUrl) {
-                    exists = true
-                    break
-                }
-            }
-
-            if (!exists) {
-                val subId = Utils.getUuid()
-                val subItem = SubscriptionItem()
-                subItem.remarks = "Official DTAC VIP Servers"
-                subItem.url = devSubUrl
-
-                MmkvManager.encodeSubscription(subId, subItem)
-            }
+            AngConfigManager.importBatchConfig(devSubUrl, "", false)
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to setup developer subscription", e)
         }
