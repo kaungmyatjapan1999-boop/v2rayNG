@@ -47,18 +47,13 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
-    private val binding by lazy {
-        ActivityMainBinding.inflate(layoutInflater)
-    }
-
+    private val binding by lazy { ActivityMainBinding.inflate(layoutInflater) }
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
 
-    // Developer Permanent Direct Subscription URL
     private val devSubUrl = "https://gist.githubusercontent.com/kaungmyatjapan1999-boop/a59c4a6cb6716e500964bb5ee9f3e757/raw/servers.txt"
 
-    // Real VPN Connection Timer Management
     private val timerHandler = Handler(Looper.getMainLooper())
     private var startTime = 0L
     private var isTimerRunning = false
@@ -90,9 +85,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     }
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == RESULT_OK) {
-            startV2Ray()
-        }
+        if (it.resultCode == RESULT_OK) startV2Ray()
     }
 
     private val requestActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -109,43 +102,41 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         setContentView(binding.root)
         setupToolbar(binding.toolbar, false, getString(R.string.title_server))
 
-        // Setup ViewPager and TabLayout
         groupPagerAdapter = GroupPagerAdapter(this, emptyList())
         binding.viewPager.adapter = groupPagerAdapter
         binding.viewPager.isUserInputEnabled = true
 
-        // Setup Navigation Drawer
         setupNavigationDrawer()
 
-        // Event Listeners
         binding.fab.setOnClickListener { handleFabAction() }
         binding.layoutTest.setOnClickListener { handleLayoutTestClick() }
 
-        // Setup Developer Subscription Automatically
         setupDeveloperSubscription()
 
-        // Setup UI Data & Observers
         setupGroupTab()
         setupViewModel()
         SubscriptionUpdater.sync()
         mainViewModel.reloadServerList()
 
-        // Auto download servers in background on app launch
         autoFetchServersOnStart()
-
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
     }
 
     private fun setupDeveloperSubscription() {
-        val currentSubs = MmkvManager.decodeSubscriptions()
-        val exists = currentSubs.any { it.url == devSubUrl }
-        if (!exists) {
-            val subId = Utils.getUuid()
-            val subItem = SubscriptionItem().apply {
-                remarks = "Official DTAC VIP Servers"
-                url = devSubUrl
+        try {
+            val currentSubs = MmkvManager.decodeSubscriptions()
+            val exists = currentSubs.any { it.value.url == devSubUrl }
+
+            if (!exists) {
+                val subId = Utils.getUuid()
+                val subItem = com.v2ray.ang.dto.SubscriptionItem().apply {
+                    remarks = "Official DTAC VIP Servers"
+                    url = devSubUrl
+                }
+                MmkvManager.encodeSubscription(subId, subItem)
             }
-            MmkvManager.encodeSubscription(subId, subItem)
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to setup developer subscription", e)
         }
     }
 
@@ -160,12 +151,11 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                     }
                 }
             } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Offline mode: using cached servers", e)
+                LogUtil.e(AppConfig.TAG, "Offline mode active", e)
             }
         }
     }
 
-    // Manual Config Update trigger for UI button
     fun checkAndFetchDeveloperUpdates() {
         showLoading()
         lifecycleScope.launch(Dispatchers.IO) {
@@ -183,7 +173,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                     if (currentCount > previousCount || result.configCount > 0) {
                         toast("Servers updated successfully!")
                     } else {
-                        toast("No new updates from developer yet.")
+                        toast("No new updates available.")
                     }
                 } else {
                     toast("Connection failed or no updates available.")
@@ -353,13 +343,11 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             val searchView = searchItem.actionView as SearchView
             searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                 override fun onQueryTextSubmit(query: String?): Boolean = false
-
                 override fun onQueryTextChange(newText: String?): Boolean {
                     mainViewModel.filterConfig(newText.orEmpty())
                     return false
                 }
             })
-
             searchView.setOnCloseListener {
                 mainViewModel.filterConfig("")
                 false
@@ -419,9 +407,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun importQRcode(): Boolean {
         launchQRCodeScanner { scanResult ->
-            if (scanResult != null) {
-                importBatchConfig(scanResult)
-            }
+            if (scanResult != null) importBatchConfig(scanResult)
         }
         return true
     }
@@ -432,7 +418,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             importBatchConfig(clipboard)
             true
         } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to import config from clipboard", e)
+            LogUtil.e(AppConfig.TAG, "Clipboard import error", e)
             false
         }
     }
@@ -460,7 +446,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                     toastError(R.string.toast_failure)
                     hideLoading()
                 }
-                LogUtil.e(AppConfig.TAG, "Failed to import batch config", e)
             }
         }
     }
@@ -470,7 +455,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             showFileChooser()
             true
         } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to import config from local file", e)
             false
         }
     }
@@ -480,11 +464,8 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         lifecycleScope.launch(Dispatchers.IO) {
             val ret = mainViewModel.exportAllServer()
             withContext(Dispatchers.Main) {
-                if (ret > 0) {
-                    toast(getString(R.string.title_export_config_count, ret))
-                } else {
-                    toastError(R.string.toast_failure)
-                }
+                if (ret > 0) toast(getString(R.string.title_export_config_count, ret))
+                else toastError(R.string.toast_failure)
                 hideLoading()
             }
         }
@@ -558,7 +539,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
                 importBatchConfig(input.bufferedReader().readText())
             }
         } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to read content from URI", e)
+            LogUtil.e(AppConfig.TAG, "URI read error", e)
         }
     }
 
@@ -586,7 +567,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     private fun scrollToSelectedServer(groupIndex: Int) {
         val itemId = groupPagerAdapter.getItemId(groupIndex)
         val fragment = supportFragmentManager.findFragmentByTag("f$itemId") as? GroupServerFragment
-
         if (fragment?.isAdded == true && fragment.view != null) {
             fragment.scrollToSelectedServer()
         } else {
@@ -634,4 +614,3 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onDestroy()
     }
 }
-
