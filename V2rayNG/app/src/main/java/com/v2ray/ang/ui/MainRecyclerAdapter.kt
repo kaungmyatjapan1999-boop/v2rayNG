@@ -15,8 +15,6 @@ import com.v2ray.ang.databinding.ItemRecyclerMainBinding
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.ServersCache
 import com.v2ray.ang.extension.isComplexType
-import com.v2ray.ang.extension.nullIfBlank
-import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.helper.ItemTouchHelperAdapter
 import com.v2ray.ang.helper.ItemTouchHelperViewHolder
@@ -32,7 +30,6 @@ class MainRecyclerAdapter(
         private const val VIEW_TYPE_FOOTER = 2
     }
 
-    private val doubleColumnDisplay = MmkvManager.decodeSettingsBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
     private var data: MutableList<ServersCache> = mutableListOf()
 
     @SuppressLint("NotifyDataSetChanged")
@@ -56,7 +53,7 @@ class MainRecyclerAdapter(
 
             holder.itemView.setBackgroundColor(Color.TRANSPARENT)
 
-            // Override display text for UI masking (Preserves actual VLESS configs)
+            // Display masking on UI
             holder.itemMainBinding.tvName.text = "DTAC VIP"
             holder.itemMainBinding.tvStatistics.text = getAddress(profile)
             holder.itemMainBinding.tvType.text = getProtocolDescription(profile)
@@ -82,32 +79,15 @@ class MainRecyclerAdapter(
             holder.itemMainBinding.tvSubscription.text = subRemarks
             holder.itemMainBinding.layoutSubscription.visibility = if (subRemarks.isEmpty()) View.GONE else View.VISIBLE
 
-            // Layout control
-            if (doubleColumnDisplay) {
-                holder.itemMainBinding.layoutShare.visibility = View.GONE
-                holder.itemMainBinding.layoutEdit.visibility = View.GONE
-                holder.itemMainBinding.layoutRemove.visibility = View.GONE
-                holder.itemMainBinding.layoutMore.visibility = View.VISIBLE
+            // Hide Edit, Share, and More icons to protect VLESS details
+            holder.itemMainBinding.layoutShare.visibility = View.GONE
+            holder.itemMainBinding.layoutEdit.visibility = View.GONE
+            holder.itemMainBinding.layoutMore.visibility = View.GONE
 
-                holder.itemMainBinding.layoutMore.setOnClickListener {
-                    adapterListener?.onShare(guid, profile, position, true)
-                }
-            } else {
-                holder.itemMainBinding.layoutShare.visibility = View.VISIBLE
-                holder.itemMainBinding.layoutEdit.visibility = View.VISIBLE
-                holder.itemMainBinding.layoutRemove.visibility = View.VISIBLE
-                holder.itemMainBinding.layoutMore.visibility = View.GONE
-
-                holder.itemMainBinding.layoutShare.setOnClickListener {
-                    adapterListener?.onShare(guid, profile, position, false)
-                }
-
-                holder.itemMainBinding.layoutEdit.setOnClickListener {
-                    adapterListener?.onEdit(guid, position, profile)
-                }
-                holder.itemMainBinding.layoutRemove.setOnClickListener {
-                    adapterListener?.onRemove(guid, position)
-                }
+            // Delete Icon Only
+            holder.itemMainBinding.layoutRemove.visibility = View.VISIBLE
+            holder.itemMainBinding.layoutRemove.setOnClickListener {
+                adapterListener?.onRemove(guid, position)
             }
 
             holder.itemMainBinding.infoContainer.setOnClickListener {
@@ -116,9 +96,6 @@ class MainRecyclerAdapter(
         }
     }
 
-    /**
-     * Masks the real IP/Domain address with custom UI label
-     */
     private fun getAddress(profile: ProfileItem): String {
         return "DTAC VIP SERVER"
     }
@@ -140,14 +117,12 @@ class MainRecyclerAdapter(
         val parts = mutableListOf<String>()
         parts.add(profile.configType.name)
 
-        // Transport: hide tcp or blank
         profile.network?.let { net ->
             if (net.isNotBlank() && !net.equals("tcp", ignoreCase = true)) {
                 parts.add(net)
             }
         }
 
-        // Security: hide blank or tls
         profile.security?.let { sec ->
             if (sec.isNotBlank()) {
                 if (profile.insecure == true && sec.equals("tls", ignoreCase = true)) {
