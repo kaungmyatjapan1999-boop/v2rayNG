@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.jaredsburrows.license")
-    id("com.google.gms.google-services") // Firebase Google Services Plugin ထည့်သွင်းခြင်း
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -64,7 +64,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            jniLibs.srcDirs("libs")
+            directories.add("libs")
         }
     }
 
@@ -149,67 +149,56 @@ android {
             useLegacyPackaging = true
         }
     }
-
 }
 
 dependencies {
-    // Core Libraries
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
 
-    // AndroidX Core Libraries
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 
-    // Compose Libraries
-    implementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    implementation(platform("androidx.compose:compose-bom:2025.02.00"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2025.02.00"))
 
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.foundation)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.lifecycle.runtime.compose)
-    implementation(libs.coil.compose)
+    implementation("androidx.activity:activity-compose:1.10.0")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("io.coil-kt.coil3:coil-compose:3.0.0")
 
-    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
-    // Data and Storage Libraries
-    implementation(libs.mmkv.static)
-    implementation(libs.gson)
-    implementation(libs.okhttp)
+    implementation("com.tencent:mmkv-static:1.3.16")
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // Reactive and Utility Libraries
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.core)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
 
-    // QR Code: CameraX + ZXing
-    implementation(libs.camerax.core)
-    implementation(libs.camerax.camera2)
-    implementation(libs.camerax.lifecycle)
-    implementation(libs.camerax.compose)
-    implementation(libs.core) // zxing core
+    implementation("androidx.camerax:camerax-core:1.4.1")
+    implementation("androidx.camerax:camerax-camera2:1.4.1")
+    implementation("androidx.camerax:camerax-lifecycle:1.4.1")
+    implementation("androidx.camerax:camerax-compose:1.4.1")
+    implementation("com.google.zxing:core:3.5.3")
 
-    // AndroidX Lifecycle and Architecture Components
-    implementation(libs.lifecycle.viewmodel.ktx)
-    implementation(libs.lifecycle.runtime.ktx)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
 
-    // Background Task Libraries
-    implementation(libs.work.runtime.ktx)
-    implementation(libs.work.multiprocess)
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+    implementation("androidx.work:work-multiprocess:2.10.0")
 
-    // Reorderable list
-    implementation(libs.reorderable)
+    implementation("sh.calvin.reorderable:reorderable:2.4.3")
 
-    // Firebase BoM နှင့် Firestore Dependencies များ ထည့်သွင်းခြင်း
     implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
     implementation("com.google.firebase:firebase-firestore")
 
-    // Testing Libraries
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    testImplementation(libs.org.mockito.mockito.inline)
-    testImplementation(libs.mockito.kotlin)
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    testImplementation("org.mockito:mockito-inline:5.2.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
