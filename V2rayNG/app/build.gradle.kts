@@ -177,11 +177,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
 
-    // CameraX dependencies ကို တည်ငြိမ်ပြီးသား 1.3.1 ဗားရှင်းသို့ ပြောင်းထားသည်
+    // CameraX dependencies (camera-compose ကို ဖယ်ရှားပြီး 1.3.1 သို့ ပြောင်းထားသည်)
     implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-compose:1.3.1")
     implementation("com.google.zxing:core:3.5.3")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
@@ -202,3 +201,4 @@ dependencies {
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
+
