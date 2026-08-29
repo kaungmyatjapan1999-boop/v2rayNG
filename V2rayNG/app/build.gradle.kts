@@ -53,7 +53,6 @@ android {
     productFlavors {
         create("fdroid") {
             dimension = "distribution"
-            // applicationIdSuffix ကို ဖြုတ်ထားပါသည် (google-services.json package name clash မဖြစ်စေရန်)
             buildConfigField("String", "DISTRIBUTION", "\"F-Droid\"")
         }
         create("playstore") {
@@ -127,21 +126,6 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
-    }
-
-    androidResources {
-        generateLocaleConfig = true
-        localeFilters += listOf(
-            "en",
-            "zh-rCN",
-            "zh-rTW",
-            "vi",
-            "ru",
-            "fa",
-            "ar",
-            "bn",
-            "bqi-rIR"
-        )
     }
 
     packaging {
