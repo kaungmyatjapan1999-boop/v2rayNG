@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -12,17 +13,20 @@ import android.os.Looper
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.EditText
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayoutMediator
+import com.google.firebase.firestore.FirebaseFirestore
+import com.tencent.mmkv.MMKV
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
@@ -119,6 +123,63 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
         autoFetchServersOnStart()
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
+
+        // Firebase Firestore ဖြင့် အသုံးပြုသူ၏ Telegram ID နှင့် ရက်စွဲကို စစ်ဆေးခြင်း
+        checkUserSubscription()
+    }
+
+    private fun checkUserSubscription() {
+        val kv = MMKV.defaultMMKV()
+        val userTelegramId = kv.decodeString("telegram_id", "")
+
+        if (userTelegramId.isNullOrEmpty()) {
+            showTelegramIdInputDialog()
+        } else {
+            val db = FirebaseFirestore.getInstance()
+            db.collection("users").document(userTelegramId).get()
+                .addOnSuccessListener { document ->
+                    if (document != null && document.exists()) {
+                        val expiryDate = document.getLong("expiryDate") ?: 0L
+                        val currentTime = System.currentTimeMillis()
+
+                        if (currentTime < expiryDate) {
+                            // ရက်မကုန်သေးပါက ဆက်လက်အသုံးပြုခွင့်ပေးသည်
+                        } else {
+                            toast("Your subscription has expired.")
+                            finish()
+                        }
+                    } else {
+                        toast("This Telegram ID is not authorized.")
+                        finish()
+                    }
+                }
+                .addOnFailureListener { e ->
+                    LogUtil.e(AppConfig.TAG, "Firestore error", e)
+                }
+        }
+    }
+
+    private fun showTelegramIdInputDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Enter Telegram ID")
+        builder.setCancelable(false)
+
+        val input = EditText(this)
+        input.hint = "ဥပမာ - 123456789"
+        builder.setView(input)
+
+        builder.setPositiveButton("Verify") { _, _ ->
+            val telegramId = input.text.toString().trim()
+            if (telegramId.isNotEmpty()) {
+                val kv = MMKV.defaultMMKV()
+                kv.encode("telegram_id", telegramId)
+                checkUserSubscription()
+            } else {
+                toast("Telegram ID cannot be empty")
+                showTelegramIdInputDialog()
+            }
+        }
+        builder.show()
     }
 
     private fun setupDeveloperSubscription() {
@@ -603,4 +664,3 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onDestroy()
     }
 }
-
