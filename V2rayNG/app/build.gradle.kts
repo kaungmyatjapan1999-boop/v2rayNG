@@ -1,188 +1,95 @@
-plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-    id("com.jaredsburrows.license")
-    id("com.google.gms.google-services")
-}
+package com.v2ray.ang.viewmodel
 
-android {
-    namespace = "com.v2ray.ang"
-    compileSdk = 37
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import com.v2ray.ang.AngApplication
+import com.v2ray.ang.R
+import com.v2ray.ang.dto.ServerConfig
+import com.v2ray.ang.extension.toast
+import com.v2ray.ang.util.MmkvManager
+import com.v2ray.ang.util.Utils
 
-    defaultConfig {
-        applicationId = "com.v2ray.ang"
-        minSdk = 24
-        targetSdk = 37
-        versionCode = 745
-        versionName = "2.3.5"
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val app: AngApplication
+        get() = getApplication<Application>() as AngApplication
 
-        val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
-        splits {
-            abi {
-                isEnable = true
-                reset()
-                if (!abiFilterList.isNullOrEmpty()) {
-                    include(*abiFilterList.toTypedArray())
-                } else {
-                    include(
-                        "arm64-v8a",
-                        "armeabi-v7a",
-                        "x86_64",
-                        "x86"
-                    )
-                }
-                isUniversalApk = abiFilterList.isNullOrEmpty()
+    val servers = MmkvManager.decodeServerList()
+
+    fun reloadServerList() {
+        servers.clear()
+        servers.addAll(MmkvManager.decodeServerList())
+    }
+
+    fun removeServer(guid: String?) {
+        if (guid == null) return
+        MmkvManager.removeServer(guid)
+        reloadServerList()
+    }
+
+    fun swapServer(fromPosition: Int, toPosition: Int) {
+        MmkvManager.swapServer(fromPosition, toPosition)
+        reloadServerList()
+    }
+
+    fun selectServer(guid: String?) {
+        if (guid == null) return
+        MmkvManager.setSelectServer(guid)
+        reloadServerList()
+    }
+
+    fun getServers(): MutableList<ServerConfig> {
+        return servers
+    }
+
+    fun exportAllServer(): String? {
+        try {
+            val list = MmkvManager.decodeServerList()
+            val sb = StringBuilder()
+            for (config in list) {
+                sb.append(config.toUri()).append("\n")
             }
+            return Utils.encode(sb.toString().trim())
+        } catch (e: Exception) {
+            e.printStackTrace()
+            app.toast(R.string.toast_failure)
         }
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        return null
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-
-    flavorDimensions.add("distribution")
-    productFlavors {
-        create("fdroid") {
-            dimension = "distribution"
-            buildConfigField("String", "DISTRIBUTION", "\"F-Droid\"")
-        }
-        create("playstore") {
-            dimension = "distribution"
-            buildConfigField("String", "DISTRIBUTION", "\"Play Store\"")
+    fun removeAllServer() {
+        try {
+            val list = MmkvManager.decodeServerList()
+            for (config in list) {
+                MmkvManager.removeServer(config.guid)
+            }
+            reloadServerList()
+            app.toast(R.string.toast_success)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            app.toast(R.string.toast_failure)
         }
     }
 
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDirs("libs")
+    fun importBatchConfig(serverList: String?): Int {
+        if (serverList.isNullOrEmpty()) {
+            return 0
         }
-    }
-
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
-    }
-
-    applicationVariants.all {
-        val variant = this
-        val isFdroid = variant.productFlavors.any { it.name == "fdroid" }
-        if (isFdroid) {
-            val versionCodes =
-                mapOf(
-                    "armeabi-v7a" to 2, "arm64-v8a" to 1, "x86" to 4, "x86_64" to 3, "universal" to 0
-                )
-
-            variant.outputs
-                .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
-                .forEach { output ->
-                    val abi = output.getFilter("ABI") ?: "universal"
-                    output.outputFileName = "v2rayNG_${variant.versionName}-fdroid_${abi}.apk"
-                    if (versionCodes.containsKey(abi)) {
-                        output.versionCodeOverride =
-                            (100 * variant.versionCode + versionCodes[abi]!!).plus(5000000)
-                    } else {
-                        return@forEach
-                    }
+        var count = 0
+        try {
+            val subList = serverList.lines()
+            for (str in subList) {
+                if (str.isBlank()) continue
+                val config = ServerConfig.create(str)
+                if (config != null) {
+                    MmkvManager.encodeServerConfig("", config)
+                    count++
                 }
-        } else {
-            val versionCodes =
-                mapOf("armeabi-v7a" to 4, "arm64-v8a" to 4, "x86" to 4, "x86_64" to 4, "universal" to 4)
-
-            variant.outputs
-                .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
-                .forEach { output ->
-                    val abi = if (output.getFilter("ABI") != null)
-                        output.getFilter("ABI")
-                    else
-                        "universal"
-
-                    output.outputFileName = "v2rayNG_${variant.versionName}_${abi}.apk"
-                    if (versionCodes.containsKey(abi)) {
-                        output.versionCodeOverride =
-                            (1000000 * versionCodes[abi]!!).plus(variant.versionCode)
-                    } else {
-                        return@forEach
-                    }
-                }
+            }
+            reloadServerList()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-    }
-
-    buildFeatures {
-        buildConfig = true
-        compose = true
-    }
-
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
+        return count
     }
 }
 
-dependencies {
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar", "*.jar"))))
-
-    implementation("androidx.core:core-ktx:1.17.0")
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.preference:preference-ktx:1.2.1")
-
-    implementation(platform("androidx.compose:compose-bom:2025.02.00"))
-    androidTestImplementation(platform("androidx.compose:compose-bom:2025.02.00"))
-
-    implementation("androidx.activity:activity-compose:1.10.0")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("io.coil-kt.coil3:coil-compose:3.0.0")
-
-    debugImplementation("androidx.compose.ui:ui-tooling")
-
-    implementation("com.tencent:mmkv-static:1.3.16")
-    implementation("com.google.code.gson:gson:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
-
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("com.google.zxing:core:3.5.3")
-
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-
-    implementation("androidx.work:work-runtime-ktx:2.10.0")
-    implementation("androidx.work:work-multiprocess:2.10.0")
-
-    implementation("sh.calvin.reorderable:reorderable:2.4.3")
-
-    implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
-    implementation("com.google.firebase:firebase-firestore")
-
-    testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
-    testImplementation("org.mockito:mockito-inline:5.2.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}
