@@ -18,7 +18,6 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
@@ -124,7 +123,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         autoFetchServersOnStart()
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
 
-        // Firebase Firestore ဖြင့် အသုံးပြုသူ၏ Telegram ID နှင့် ရက်စွဲကို စစ်ဆေးခြင်း
         checkUserSubscription()
     }
 
@@ -139,18 +137,30 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             db.collection("users").document(userTelegramId).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
+                        val status = document.getString("status") ?: "pending"
                         val expiryDate = document.getLong("expiryDate") ?: 0L
                         val currentTime = System.currentTimeMillis()
 
-                        if (currentTime < expiryDate) {
-                            // ရက်မကုန်သေးပါက ဆက်လက်အသုံးပြုခွင့်ပေးသည်
+                        if (status == "active" && currentTime < expiryDate) {
+                            // Active and not expired
+                        } else if (status == "pending") {
+                            toast("Your account is pending admin approval.")
+                            finish()
                         } else {
                             toast("Your subscription has expired.")
                             finish()
                         }
                     } else {
-                        toast("This Telegram ID is not authorized.")
-                        finish()
+                        val initialData = hashMapOf(
+                            "telegramId" to userTelegramId,
+                            "status" to "pending",
+                            "expiryDate" to 0L
+                        )
+                        db.collection("users").document(userTelegramId).set(initialData)
+                            .addOnSuccessListener {
+                                toast("Registration submitted. Please wait for admin approval.")
+                                finish()
+                            }
                     }
                 }
                 .addOnFailureListener { e ->
